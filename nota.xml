@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<TextureAtlas imagePath="nota.png">
+	<!-- Created using the Spritesheet and XML generator -->
+	<!-- https://uncertainprod.github.io/FNF-Spritesheet-XML-generator-Web -->
+	<SubTexture name="notavacia0000" x="0" y="548" width="160" height="164" frameX="-1" frameY="1" frameWidth="162" frameHeight="162"/>
+	<SubTexture name="sustain0000" x="506" y="202" width="57" height="68" frameX="-51" frameY="2" frameWidth="150" frameHeight="64"/>
+	<SubTexture name="sustainEnd0000" x="580" y="492" width="57" height="48" frameX="-51" frameY="2" frameWidth="150" frameHeight="44"/>
+	<SubTexture name="idle0000" x="580" y="328" width="160" height="164" frameX="-1" frameY="1" frameWidth="163" frameHeight="163"/>
+	<SubTexture name="idle0001" x="320" y="384" width="160" height="164" frameX="-1" frameY="1" frameWidth="163" frameHeight="163"/>
+	<SubTexture name="idle0002" x="160" y="384" width="160" height="164" frameX="-1" frameY="1" frameWidth="163" frameHeight="163"/>
+	<SubTexture name="idle0003" x="160" y="384" width="160" height="164" frameX="-1" frameY="1" frameWidth="163" frameHeight="163"/>
+	<SubTexture name="idle0004" x="580" y="164" width="160" height="164" frameX="-1" frameY="1" frameWidth="163" frameHeight="163"/>
+	<SubTexture name="idle0005" x="346" y="202" width="160" height="164" frameX="-1" frameY="1" frameWidth="163" frameHeight="163"/>
+	<SubTexture name="idle0006" x="580" y="0" width="160" height="164" frameX="-1" frameY="1" frameWidth="163" frameHeight="163"/>
+	<SubTexture name="idle0007" x="0" y="384" width="160" height="164" frameX="-1" frameY="1" frameWidth="163" frameHeight="163"/>
+	<SubTexture name="notapress0000" x="178" y="202" width="168" height="172" frameX="-15" frameY="-13" frameWidth="199" frameHeight="199"/>
+	<SubTexture name="notapress0001" x="0" y="202" width="178" height="182" frameX="-10" frameY="-8" frameWidth="199" frameHeight="199"/>
+	<SubTexture name="notapress0002" x="392" y="0" width="188" height="192" frameX="-5" frameY="-3" frameWidth="199" frameHeight="199"/>
+	<SubTexture name="notapress0003" x="0" y="0" width="196" height="202" frameX="-1" frameY="2" frameWidth="199" frameHeight="199"/>
+	<SubTexture name="notapress0004" x="196" y="0" width="196" height="202" frameX="-1" frameY="2" frameWidth="199" frameHeight="199"/>
+</TextureAtlas>
