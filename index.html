@@ -3,1673 +3,6 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Chart Editor Engine</title>
-
-<style>
-*{
-box-sizing:border-box;
-user-select:none;
-}
-
-html,body{
-margin:0;
-padding:0;
-width:100%;
-height:100%;
-overflow:hidden;
-background:#101010;
-color:#fff;
-font-family:Arial,sans-serif;
-}
-
-button,input{
-font-family:Arial,sans-serif;
-}
-
-#app{
-width:100%;
-height:100%;
-display:flex;
-flex-direction:column;
-}
-
-#topbar{
-height:52px;
-min-height:52px;
-background:#181818;
-border-bottom:1px solid #333;
-display:flex;
-align-items:center;
-gap:7px;
-padding:7px;
-z-index:100;
-}
-
-button{
-background:#242424;
-border:1px solid #444;
-color:#fff;
-border-radius:5px;
-padding:7px 11px;
-cursor:pointer;
-}
-
-button:hover{
-background:#303030;
-}
-
-button:active{
-background:#181818;
-}
-
-input[type="number"]{
-width:80px;
-background:#202020;
-border:1px solid #444;
-color:#fff;
-border-radius:5px;
-padding:7px;
-}
-
-#status{
-margin-left:auto;
-font-size:12px;
-color:#aaa;
-white-space:nowrap;
-}
-
-#editor{
-position:relative;
-flex:1;
-overflow:hidden;
-background:#0b0b0b;
-outline:none;
-}
-
-#scroll{
-position:absolute;
-left:0;
-right:0;
-top:0;
-bottom:0;
-overflow:auto;
-}
-
-#grid{
-position:relative;
-width:min(900px,100%);
-margin:48px auto 500px auto;
-min-height:1000px;
-background:#151515;
-border-left:1px solid #333;
-border-right:1px solid #333;
-}
-
-.lane{
-position:absolute;
-top:0;
-bottom:0;
-border-left:1px solid rgba(255,255,255,.08);
-border-right:1px solid rgba(255,255,255,.04);
-pointer-events:none;
-}
-
-.lane:nth-child(odd){
-background:rgba(255,255,255,.015);
-}
-
-.laneLabel{
-position:absolute;
-top:4px;
-height:25px;
-display:flex;
-justify-content:center;
-align-items:center;
-font-size:11px;
-color:#888;
-pointer-events:none;
-z-index:3;
-}
-
-.beatLine{
-position:absolute;
-left:0;
-width:100%;
-height:1px;
-background:rgba(255,255,255,.10);
-pointer-events:none;
-}
-
-.sectionLine{
-position:absolute;
-left:0;
-width:100%;
-height:2px;
-background:rgba(255,255,255,.25);
-pointer-events:none;
-}
-
-#gridHeader{
-position:absolute;
-top:6px;
-left:50%;
-transform:translateX(-50%);
-width:min(900px,100%);
-height:32px;
-display:flex;
-gap:14px;
-z-index:30;
-pointer-events:none;
-}
-
-.groupHeader{
-flex:1;
-display:flex;
-align-items:center;
-justify-content:center;
-border-radius:7px;
-font-weight:bold;
-font-size:14px;
-}
-
-#bfHeader{
-color:#35d9ff;
-background:rgba(53,217,255,.16);
-border:2px solid rgba(53,217,255,.7);
-}
-
-#dadHeader{
-color:#a855ff;
-background:rgba(168,85,255,.16);
-border:2px solid rgba(168,85,255,.7);
-}
-
-#gridGroupDivider{
-position:absolute;
-top:0;
-bottom:0;
-left:50%;
-transform:translateX(-50%);
-width:14px;
-background:#090909;
-border-left:1px solid #333;
-border-right:1px solid #333;
-z-index:8;
-pointer-events:none;
-}
-
-.note{
-position:absolute;
-z-index:15;
-pointer-events:none;
-transform-origin:center center;
-}
-
-.note.selected{
-filter:drop-shadow(0 0 7px #fff);
-}
-
-.sustain{
-position:absolute;
-z-index:8;
-pointer-events:none;
-}
-
-#playLine{
-position:absolute;
-left:0;
-width:100%;
-height:2px;
-background:#fff;
-box-shadow:0 0 5px #fff;
-z-index:20;
-pointer-events:none;
-}
-
-#dropOverlay{
-display:none;
-position:absolute;
-inset:0;
-background:rgba(0,180,255,.12);
-border:2px dashed #35d9ff;
-z-index:200;
-align-items:center;
-justify-content:center;
-font-size:24px;
-pointer-events:none;
-}
-
-#help{
-position:absolute;
-bottom:10px;
-left:10px;
-padding:8px 10px;
-background:rgba(0,0,0,.7);
-border:1px solid #333;
-border-radius:5px;
-font-size:11px;
-color:#aaa;
-z-index:50;
-pointer-events:none;
-}
-
-#fileJson,
-#fileAudio{
-display:none;
-}
-
-::-webkit-scrollbar{
-width:10px;
-height:10px;
-}
-
-::-webkit-scrollbar-track{
-background:#111;
-}
-
-::-webkit-scrollbar-thumb{
-background:#333;
-border-radius:5px;
-}
-
-::-webkit-scrollbar-thumb:hover{
-background:#444;
-}
-</style>
-</head>
-
-<body>
-
-<div id="app">
-
-<div id="topbar">
-
-<button onclick="document.getElementById('fileJson').click()">JSON</button>
-<button onclick="document.getElementById('fileAudio').click()">Audio</button>
-
-<button onclick="playPause()">▶ / ⏸</button>
-<button onclick="stopAudio()">■</button>
-
-<button onclick="deleteSelected()">Eliminar</button>
-
-<button onclick="clearSectionBF()">Borrar BF sección</button>
-<button onclick="clearSectionDad()">Borrar DAD sección</button>
-
-<button onclick="exportChart()">Exportar</button>
-
-<span>BPM</span>
-<input id="bpmInput" type="number" value="120" min="1">
-
-<span>Zoom</span>
-<input id="zoomInput" type="number" value="1" min=".2" max="5" step=".1">
-
-<span id="status">Listo</span>
-
-</div>
-
-<input id="fileJson" type="file" accept=".json">
-<input id="fileAudio" type="file" accept="audio/*">
-
-<div id="editor" tabindex="0">
-
-<div id="gridHeader">
-<div id="bfHeader" class="groupHeader">BF</div>
-<div id="dadHeader" class="groupHeader">DAD</div>
-</div>
-
-<div id="gridGroupDivider"></div>
-
-<div id="scroll">
-<div id="grid">
-<div id="playLine"></div>
-</div>
-</div>
-
-<div id="dropOverlay">SUELTA EL JSON O AUDIO AQUÍ</div>
-
-<div id="help">
-Click = nota · Shift + click = sustain · Click derecho = eliminar · Espacio = play/pausa · Delete = eliminar nota
-</div>
-
-</div>
-
-</div>
-
-<script>
-
-const grid=document.getElementById("grid");
-const scroll=document.getElementById("scroll");
-const editor=document.getElementById("editor");
-const statusText=document.getElementById("status");
-const bpmInput=document.getElementById("bpmInput");
-const zoomInput=document.getElementById("zoomInput");
-const playLine=document.getElementById("playLine");
-
-const groupGap=14;
-
-let laneWidth=100;
-
-let atlasImage=new Image();
-let atlasFrames={};
-let atlasReady=false;
-
-let chartData={
-song:{
-song:"",
-bpm:120,
-speed:1,
-notes:[]
-}
-};
-
-let notes=[];
-let selectedNote=null;
-
-let audio=null;
-let audioURL="";
-let audioDuration=0;
-
-let playing=false;
-let animationFrame=null;
-
-let pixelsPerBeat=90;
-let currentScrollTime=0;
-
-let dragStartY=null;
-
-const directionColors=[
-"#ff3030",
-"#35d9ff",
-"#42e85a",
-"#a855ff"
-];
-
-function setStatus(text){
-statusText.textContent=text;
-}
-
-function getDirectionColor(lane){
-return directionColors[lane%4];
-}
-
-function getLaneX(lane){
-return lane*laneWidth+(lane>=4?groupGap:0);
-}
-
-function getGridWidth(){
-return grid.clientWidth;
-}
-
-function calculateLaneWidth(){
-laneWidth=(getGridWidth()-groupGap)/8;
-}
-
-function getSong(){
-if(chartData.song)return chartData.song;
-return chartData;
-}
-
-function normalizeChart(data){
-
-if(data.song){
-chartData=data;
-}else{
-chartData={
-song:data
-};
-}
-
-const song=getSong();
-
-if(!song.notes)song.notes=[];
-
-if(!song.bpm)song.bpm=120;
-
-bpmInput.value=song.bpm;
-
-notes=[];
-
-for(const section of song.notes){
-
-if(section.sectionNotes){
-
-for(const n of section.sectionNotes){
-
-if(!Array.isArray(n))continue;
-
-notes.push({
-time:Number(n[0])||0,
-lane:Number(n[1])||0,
-sustain:Number(n[2])||0,
-type:n[3]??0
-});
-
-}
-
-}
-
-}
-
-sortNotes();
-
-renderGrid();
-
-setStatus("Chart cargado: "+notes.length+" notas");
-}
-
-function sortNotes(){
-notes.sort((a,b)=>a.time-b.time);
-}
-
-function clearGridVisuals(){
-
-grid.querySelectorAll(
-".lane,.laneLabel,.beatLine,.sectionLine,.note,.sustain"
-).forEach(e=>e.remove());
-
-}
-
-function setupGrid(){
-
-calculateLaneWidth();
-
-clearGridVisuals();
-
-grid.style.width="min(900px,100%)";
-
-for(let i=0;i<8;i++){
-
-const lane=document.createElement("div");
-
-lane.className="lane";
-
-lane.style.left=getLaneX(i)+"px";
-lane.style.width=laneWidth+"px";
-
-grid.appendChild(lane);
-
-const label=document.createElement("div");
-
-label.className="laneLabel";
-
-label.textContent=
-i%4===0?"←":
-i%4===1?"↓":
-i%4===2?"↑":
-"→";
-
-label.style.left=getLaneX(i)+"px";
-label.style.width=laneWidth+"px";
-label.style.color=getDirectionColor(i);
-
-grid.appendChild(label);
-
-}
-
-}
-
-function calculateChartHeight(){
-
-if(notes.length===0)return 5000;
-
-let last=notes[notes.length-1].time;
-
-let maxTime=last;
-
-for(const n of notes){
-
-maxTime=Math.max(
-maxTime,
-n.time+n.sustain
-);
-
-}
-
-const beatTime=60000/Number(bpmInput.value||120);
-
-const beats=maxTime/beatTime;
-
-return Math.max(
-5000,
-beats*pixelsPerBeat+1000
-);
-
-}
-
-function renderBeatLines(){
-
-grid.querySelectorAll(".beatLine,.sectionLine").forEach(e=>e.remove());
-
-const bpm=Number(bpmInput.value)||120;
-
-const beatTime=60000/bpm;
-
-const height=grid.clientHeight;
-
-const maxBeats=Math.ceil(
-height/pixelsPerBeat
-);
-
-for(let i=0;i<=maxBeats;i++){
-
-const y=i*pixelsPerBeat;
-
-const line=document.createElement("div");
-
-line.className="beatLine";
-line.style.top=y+"px";
-
-grid.appendChild(line);
-
-if(i%4===0){
-
-line.classList.add("sectionLine");
-
-}
-
-}
-
-}
-
-function timeToY(time){
-
-const bpm=Number(bpmInput.value)||120;
-
-const beatTime=60000/bpm;
-
-return time/beatTime*pixelsPerBeat;
-
-}
-
-function yToTime(y){
-
-const bpm=Number(bpmInput.value)||120;
-
-const beatTime=60000/bpm;
-
-return y/pixelsPerBeat*beatTime;
-
-}
-
-function drawAtlasFrame(frameName,visualSize=70,tint=null){
-
-if(!atlasReady||!atlasFrames[frameName]){
-
-const canvas=document.createElement("canvas");
-
-canvas.width=visualSize;
-canvas.height=visualSize;
-
-const ctx=canvas.getContext("2d");
-
-ctx.fillStyle=tint||"#fff";
-
-ctx.beginPath();
-
-ctx.arc(
-visualSize/2,
-visualSize/2,
-visualSize*.35,
-0,
-Math.PI*2
-);
-
-ctx.fill();
-
-return canvas;
-
-}
-
-const frame=atlasFrames[frameName];
-
-const fw=frame.frameWidth||frame.width;
-const fh=frame.frameHeight||frame.height;
-
-const scale=visualSize/Math.max(fw,fh);
-
-const canvas=document.createElement("canvas");
-
-canvas.width=Math.ceil(fw*scale);
-canvas.height=Math.ceil(fh*scale);
-
-const ctx=canvas.getContext("2d");
-
-ctx.imageSmoothingEnabled=true;
-
-ctx.drawImage(
-atlasImage,
-frame.x,
-frame.y,
-frame.width,
-frame.height,
-frame.frameX*scale,
-frame.frameY*scale,
-frame.width*scale,
-frame.height*scale
-);
-
-if(tint){
-
-ctx.save();
-
-ctx.globalCompositeOperation="source-atop";
-ctx.globalAlpha=.65;
-ctx.fillStyle=tint;
-
-ctx.fillRect(
-0,
-0,
-canvas.width,
-canvas.height
-);
-
-ctx.restore();
-
-}
-
-return canvas;
-}
-
-function createNoteElement(note,index){
-
-const color=getDirectionColor(note.lane);
-
-const wrapper=document.createElement("div");
-
-wrapper.className="note";
-wrapper.dataset.index=index;
-
-const canvas=drawAtlasFrame(
-"idle0000",
-70,
-color
-);
-
-let rotation=0;
-
-switch(note.lane%4){
-
-case 0:
-rotation=-90;
-break;
-
-case 1:
-rotation=180;
-break;
-
-case 2:
-rotation=0;
-break;
-
-case 3:
-rotation=90;
-break;
-
-}
-
-wrapper.style.width=canvas.width+"px";
-wrapper.style.height=canvas.height+"px";
-
-wrapper.style.left=
-(
-getLaneX(note.lane)+
-laneWidth/2-
-canvas.width/2
-)+"px";
-
-wrapper.style.top=
-(
-timeToY(note.time)-
-canvas.height/2
-)+"px";
-
-wrapper.style.transform=
-"rotate("+rotation+"deg)";
-
-canvas.style.width=canvas.width+"px";
-canvas.style.height=canvas.height+"px";
-
-wrapper.appendChild(canvas);
-
-if(selectedNote===note){
-wrapper.classList.add("selected");
-}
-
-wrapper.addEventListener("click",e=>{
-
-e.stopPropagation();
-
-selectedNote=note;
-
-renderNotes();
-
-editor.focus();
-
-});
-
-wrapper.addEventListener("contextmenu",e=>{
-
-e.preventDefault();
-e.stopPropagation();
-
-const idx=notes.indexOf(note);
-
-if(idx!==-1){
-
-if(selectedNote===note)
-selectedNote=null;
-
-notes.splice(idx,1);
-
-renderNotes();
-
-editor.focus();
-
-}
-
-});
-
-return wrapper;
-}
-
-function createSustainElement(note,index){
-
-if(!note.sustain||note.sustain<=0)
-return null;
-
-const color=getDirectionColor(note.lane);
-
-const top=timeToY(note.time);
-
-const bottom=timeToY(
-note.time+note.sustain
-);
-
-const height=Math.max(
-10,
-bottom-top
-);
-
-const sustain=document.createElement("div");
-
-sustain.className="sustain";
-
-sustain.style.left=
-(
-getLaneX(note.lane)+
-laneWidth/2-
-28
-)+"px";
-
-sustain.style.top=top+"px";
-
-sustain.style.width="56px";
-sustain.style.height=height+"px";
-
-const body=drawAtlasFrame(
-"sustain0000",
-56,
-color
-);
-
-const end=drawAtlasFrame(
-"sustainEnd0000",
-56,
-color
-);
-
-body.style.position="absolute";
-body.style.left="0";
-body.style.top="0";
-
-body.style.width="56px";
-body.style.height=
-Math.max(
-0,
-height-end.height
-)+"px";
-
-end.style.position="absolute";
-end.style.left="0";
-end.style.bottom="0";
-
-sustain.appendChild(body);
-sustain.appendChild(end);
-
-return sustain;
-}
-
-function renderNotes(){
-
-grid.querySelectorAll(".note,.sustain").forEach(e=>e.remove());
-
-for(let i=0;i<notes.length;i++){
-
-const note=notes[i];
-
-const sustain=createSustainElement(
-note,
-i
-);
-
-if(sustain)
-grid.appendChild(sustain);
-
-grid.appendChild(
-createNoteElement(note,i)
-);
-
-}
-
-}
-
-function renderGrid(){
-
-setupGrid();
-
-grid.style.height=
-calculateChartHeight()+"px";
-
-renderBeatLines();
-
-renderNotes();
-
-}
-
-function getLaneFromX(x){
-
-const firstGroupWidth=laneWidth*4;
-
-if(
-x>=firstGroupWidth &&
-x<firstGroupWidth+groupGap
-){
-
-return -1;
-
-}
-
-if(x<firstGroupWidth){
-
-return Math.floor(x/laneWidth);
-
-}
-
-const secondX=
-x-firstGroupWidth-groupGap;
-
-const lane=
-4+Math.floor(secondX/laneWidth);
-
-if(lane<4||lane>7)
-return -1;
-
-return lane;
-}
-
-grid.addEventListener("mousedown",e=>{
-
-if(e.button!==0)
-return;
-
-const rect=grid.getBoundingClientRect();
-
-const x=e.clientX-rect.left;
-const y=e.clientY-rect.top;
-
-const lane=getLaneFromX(x);
-
-if(lane<0)
-return;
-
-const time=yToTime(y);
-
-if(time<0)
-return;
-
-let snappedTime=snapTime(time);
-
-const existing=notes.find(n=>
-n.lane===lane &&
-Math.abs(n.time-snappedTime)<2
-);
-
-if(existing){
-
-selectedNote=existing;
-
-renderNotes();
-
-editor.focus();
-
-return;
-
-}
-
-let sustain=0;
-
-if(e.shiftKey){
-
-sustain=
-Math.max(
-0,
-60000/(Number(bpmInput.value)||120)
-);
-
-}
-
-const note={
-time:snappedTime,
-lane:lane,
-sustain:sustain,
-type:0
-};
-
-notes.push(note);
-
-selectedNote=note;
-
-sortNotes();
-
-grid.style.height=
-calculateChartHeight()+"px";
-
-renderBeatLines();
-renderNotes();
-
-editor.focus();
-
-});
-
-function snapTime(time){
-
-const beatTime=
-60000/(Number(bpmInput.value)||120);
-
-const snap=beatTime/4;
-
-return Math.round(time/snap)*snap;
-
-}
-
-function deleteSelected(){
-
-if(!selectedNote)
-return;
-
-const i=notes.indexOf(selectedNote);
-
-if(i!==-1){
-
-notes.splice(i,1);
-
-selectedNote=null;
-
-renderNotes();
-
-setStatus("Nota eliminada");
-
-}
-
-}
-
-function clearSectionBF(){
-
-if(!selectedNote)
-return;
-
-const bpm=Number(bpmInput.value)||120;
-
-const beatTime=60000/bpm;
-
-const section=Math.floor(
-selectedNote.time/(beatTime*4)
-);
-
-const start=section*beatTime*4;
-const end=start+beatTime*4;
-
-notes=notes.filter(n=>
-!(
-n.lane<4&&
-n.time>=start&&
-n.time<end
-)
-);
-
-selectedNote=null;
-
-renderNotes();
-
-}
-
-function clearSectionDad(){
-
-if(!selectedNote)
-return;
-
-const bpm=Number(bpmInput.value)||120;
-
-const beatTime=60000/bpm;
-
-const section=Math.floor(
-selectedNote.time/(beatTime*4)
-);
-
-const start=section*beatTime*4;
-const end=start+beatTime*4;
-
-notes=notes.filter(n=>
-!(
-n.lane>=4&&
-n.time>=start&&
-n.time<end
-)
-);
-
-selectedNote=null;
-
-renderNotes();
-
-}
-
-function updateChartFromNotes(){
-
-const song=getSong();
-
-const bpm=Number(bpmInput.value)||120;
-
-song.bpm=bpm;
-
-const sections={};
-
-for(const note of notes){
-
-const beatTime=60000/bpm;
-
-const sectionIndex=Math.floor(
-note.time/(beatTime*4)
-);
-
-if(!sections[sectionIndex])
-sections[sectionIndex]=[];
-
-sections[sectionIndex].push([
-note.time,
-note.lane,
-note.sustain,
-note.type??0
-]);
-
-}
-
-const maxSection=
-Object.keys(sections).length?
-Math.max(
-...Object.keys(sections).map(Number)
-):
-0;
-
-song.notes=[];
-
-for(let i=0;i<=maxSection;i++){
-
-const beatTime=60000/bpm;
-
-const mustHit=i%2===1;
-
-song.notes.push({
-
-sectionNotes:sections[i]||[],
-lengthInSteps:16,
-mustHitSection:mustHit,
-bpm:bpm,
-changeBPM:false,
-altAnim:false
-
-});
-
-}
-
-return chartData;
-
-}
-
-function exportChart(){
-
-updateChartFromNotes();
-
-const json=JSON.stringify(
-chartData,
-null,
-2
-);
-
-const blob=new Blob(
-[json],
-{type:"application/json"}
-);
-
-const url=URL.createObjectURL(blob);
-
-const a=document.createElement("a");
-
-a.href=url;
-
-a.download=
-(getSong().song||"chart")+
-".json";
-
-a.click();
-
-URL.revokeObjectURL(url);
-
-setStatus("Chart exportado");
-
-}
-
-document.getElementById("fileJson").addEventListener(
-"change",
-e=>{
-
-const file=e.target.files[0];
-
-if(!file)
-return;
-
-const reader=new FileReader();
-
-reader.onload=()=>{
-
-try{
-
-const data=JSON.parse(
-reader.result
-);
-
-normalizeChart(data);
-
-editor.focus();
-
-}catch(err){
-
-console.error(err);
-
-alert("JSON inválido");
-
-}
-
-};
-
-reader.readAsText(file);
-
-});
-
-document.getElementById("fileAudio").addEventListener(
-"change",
-e=>{
-
-const file=e.target.files[0];
-
-if(!file)
-return;
-
-if(audioURL)
-URL.revokeObjectURL(audioURL);
-
-audioURL=
-URL.createObjectURL(file);
-
-if(audio)
-audio.pause();
-
-audio=new Audio(audioURL);
-
-audio.preload="auto";
-
-audio.addEventListener(
-"loadedmetadata",
-()=>{
-
-audioDuration=audio.duration;
-
-setStatus(
-"Audio: "+
-audio.duration.toFixed(2)+
-"s"
-);
-
-editor.focus();
-
-}
-);
-
-audio.addEventListener(
-"ended",
-()=>{
-
-playing=false;
-
-if(animationFrame)
-cancelAnimationFrame(animationFrame);
-
-});
-
-});
-
-function playPause(){
-
-if(!audio){
-
-setStatus("Carga un audio primero");
-
-return;
-
-}
-
-if(playing){
-
-audio.pause();
-
-playing=false;
-
-if(animationFrame)
-cancelAnimationFrame(animationFrame);
-
-return;
-
-}
-
-audio.play();
-
-playing=true;
-
-updatePlayback();
-
-}
-
-function stopAudio(){
-
-if(!audio)
-return;
-
-audio.pause();
-
-audio.currentTime=0;
-
-playing=false;
-
-updatePlayPosition(0);
-
-}
-
-function updatePlayback(){
-
-if(!playing||!audio)
-return;
-
-updatePlayPosition(
-audio.currentTime*1000
-);
-
-animationFrame=
-requestAnimationFrame(
-updatePlayback
-);
-
-}
-
-function updatePlayPosition(time){
-
-const y=timeToY(time);
-
-playLine.style.top=y+"px";
-
-if(playing){
-
-const viewportHeight=
-scroll.clientHeight;
-
-const target=
-y-viewportHeight*.35;
-
-if(
-target>0 &&
-Math.abs(
-scroll.scrollTop-target
-)>100
-){
-
-scroll.scrollTop=target;
-
-}
-
-}
-
-}
-
-bpmInput.addEventListener(
-"change",
-()=>{
-
-getSong().bpm=
-Number(bpmInput.value)||120;
-
-renderGrid();
-
-editor.focus();
-
-});
-
-zoomInput.addEventListener(
-"change",
-()=>{
-
-const z=
-Number(zoomInput.value)||1;
-
-pixelsPerBeat=
-90*z;
-
-renderGrid();
-
-editor.focus();
-
-});
-
-window.addEventListener(
-"resize",
-()=>{
-renderGrid();
-});
-
-editor.addEventListener(
-"mousedown",
-()=>{
-editor.focus();
-});
-
-document.addEventListener(
-"keydown",
-e=>{
-
-if(e.target===bpmInput||e.target===zoomInput)
-return;
-
-if(e.code==="Space"){
-
-e.preventDefault();
-
-playPause();
-
-return;
-
-}
-
-if(e.code==="Delete"){
-
-e.preventDefault();
-
-deleteSelected();
-
-return;
-
-}
-
-});
-
-grid.addEventListener(
-"dragover",
-e=>{
-
-e.preventDefault();
-
-document.getElementById(
-"dropOverlay"
-).style.display="flex";
-
-});
-
-grid.addEventListener(
-"dragleave",
-e=>{
-
-document.getElementById(
-"dropOverlay"
-).style.display="none";
-
-});
-
-grid.addEventListener(
-"drop",
-e=>{
-
-e.preventDefault();
-
-document.getElementById(
-"dropOverlay"
-).style.display="none";
-
-const files=
-[...e.dataTransfer.files];
-
-for(const file of files){
-
-if(
-file.name.toLowerCase().endsWith(".json")
-){
-
-const reader=new FileReader();
-
-reader.onload=()=>{
-
-try{
-
-normalizeChart(
-JSON.parse(reader.result)
-);
-
-}catch(err){
-
-alert("JSON inválido");
-
-}
-
-};
-
-reader.readAsText(file);
-
-}
-
-else if(
-file.type.startsWith("audio/")
-){
-
-if(audioURL)
-URL.revokeObjectURL(audioURL);
-
-audioURL=
-URL.createObjectURL(file);
-
-audio=new Audio(audioURL);
-
-audio.addEventListener(
-"loadedmetadata",
-()=>{
-
-audioDuration=audio.duration;
-
-setStatus(
-"Audio: "+
-audio.duration.toFixed(2)+
-"s"
-);
-
-}
-);
-
-}
-
-}
-
-editor.focus();
-
-});
-
-async function cargarAtlasAutomaticamente(){
-
-try{
-
-setStatus("Cargando nota.xml...");
-
-const response=
-await fetch("nota.xml");
-
-if(!response.ok){
-
-throw new Error(
-"nota.xml no encontrado"
-);
-
-}
-
-const xmlText=
-await response.text();
-
-const parser=
-new DOMParser();
-
-const xml=
-parser.parseFromString(
-xmlText,
-"application/xml"
-);
-
-const parserError=
-xml.querySelector("parsererror");
-
-if(parserError)
-throw new Error(
-"XML inválido"
-);
-
-atlasFrames={};
-
-xml.querySelectorAll(
-"SubTexture"
-).forEach(frame=>{
-
-const name=
-frame.getAttribute("name");
-
-atlasFrames[name]={
-
-x:Number(
-frame.getAttribute("x")
-)||0,
-
-y:Number(
-frame.getAttribute("y")
-)||0,
-
-width:Number(
-frame.getAttribute("width")
-)||0,
-
-height:Number(
-frame.getAttribute("height")
-)||0,
-
-frameX:Number(
-frame.getAttribute("frameX")
-)||0,
-
-frameY:Number(
-frame.getAttribute("frameY")
-)||0,
-
-frameWidth:Number(
-frame.getAttribute("frameWidth")
-)||
-Number(
-frame.getAttribute("width")
-)||
-0,
-
-frameHeight:Number(
-frame.getAttribute("frameHeight")
-)||
-Number(
-frame.getAttribute("height")
-)||
-0
-
-};
-
-});
-
-atlasImage.onload=()=>{
-
-atlasReady=true;
-
-setStatus(
-"nota.png + nota.xml cargados"
-);
-
-renderNotes();
-
-};
-
-atlasImage.onerror=()=>{
-
-atlasReady=false;
-
-setStatus(
-"Error: no se encontró nota.png"
-);
-
-};
-
-atlasImage.src="nota.png";
-
-}catch(error){
-
-console.error(
-"Error cargando atlas:",
-error
-);
-
-setStatus(
-"Atlas no cargado: "+
-error.message
-);
-
-}
-
-}
-
-window.addEventListener(
-"load",
-()=>{
-
-setupGrid();
-
-renderGrid();
-
-cargarAtlasAutomaticamente();
-
-editor.focus();
-
-});
-
-</script>
-
-</body>
-</html><!DOCTYPE html>
-<html lang="es">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>PYCH Chart Editor Web</title>
 
 <style>
@@ -1995,7 +328,7 @@ background:#444;
 <div id="dropOverlay">SUELTA EL JSON O AUDIO AQUÍ</div>
 
 <div id="help">
-Click = nota · Shift + click = sustain · Click derecho = eliminar · Espacio = play/pausa · Delete = eliminar nota
+1-4 = BF · 5-8 = DAD · Shift + tecla = sustain · Click = nota · Click derecho = eliminar · Espacio = play/pausa · Delete = eliminar
 </div>
 
 </div>
@@ -2040,9 +373,6 @@ let playing=false;
 let animationFrame=null;
 
 let pixelsPerBeat=90;
-let currentScrollTime=0;
-
-let dragStartY=null;
 
 const directionColors=[
 "#ff3030",
@@ -2088,9 +418,11 @@ song:data
 
 const song=getSong();
 
-if(!song.notes)song.notes=[];
+if(!song.notes)
+song.notes=[];
 
-if(!song.bpm)song.bpm=120;
+if(!song.bpm)
+song.bpm=120;
 
 bpmInput.value=song.bpm;
 
@@ -2102,7 +434,8 @@ if(section.sectionNotes){
 
 for(const n of section.sectionNotes){
 
-if(!Array.isArray(n))continue;
+if(!Array.isArray(n))
+continue;
 
 notes.push({
 time:Number(n[0])||0,
@@ -2121,7 +454,11 @@ sortNotes();
 
 renderGrid();
 
-setStatus("Chart cargado: "+notes.length+" notas");
+setStatus(
+"Chart cargado: "+
+notes.length+
+" notas"
+);
 }
 
 function sortNotes(){
@@ -2150,8 +487,11 @@ const lane=document.createElement("div");
 
 lane.className="lane";
 
-lane.style.left=getLaneX(i)+"px";
-lane.style.width=laneWidth+"px";
+lane.style.left=
+getLaneX(i)+"px";
+
+lane.style.width=
+laneWidth+"px";
 
 grid.appendChild(lane);
 
@@ -2165,9 +505,14 @@ i%4===1?"↓":
 i%4===2?"↑":
 "→";
 
-label.style.left=getLaneX(i)+"px";
-label.style.width=laneWidth+"px";
-label.style.color=getDirectionColor(i);
+label.style.left=
+getLaneX(i)+"px";
+
+label.style.width=
+laneWidth+"px";
+
+label.style.color=
+getDirectionColor(i);
 
 grid.appendChild(label);
 
@@ -2177,11 +522,10 @@ grid.appendChild(label);
 
 function calculateChartHeight(){
 
-if(notes.length===0)return 5000;
+if(notes.length===0)
+return 5000;
 
-let last=notes[notes.length-1].time;
-
-let maxTime=last;
+let maxTime=notes[notes.length-1].time;
 
 for(const n of notes){
 
@@ -2192,7 +536,8 @@ n.time+n.sustain
 
 }
 
-const beatTime=60000/Number(bpmInput.value||120);
+const beatTime=
+60000/Number(bpmInput.value||120);
 
 const beats=maxTime/beatTime;
 
@@ -2205,32 +550,41 @@ beats*pixelsPerBeat+1000
 
 function renderBeatLines(){
 
-grid.querySelectorAll(".beatLine,.sectionLine").forEach(e=>e.remove());
+grid.querySelectorAll(
+".beatLine,.sectionLine"
+).forEach(e=>e.remove());
 
-const bpm=Number(bpmInput.value)||120;
+const bpm=
+Number(bpmInput.value)||120;
 
-const beatTime=60000/bpm;
+const height=
+grid.clientHeight;
 
-const height=grid.clientHeight;
-
-const maxBeats=Math.ceil(
+const maxBeats=
+Math.ceil(
 height/pixelsPerBeat
 );
 
 for(let i=0;i<=maxBeats;i++){
 
-const y=i*pixelsPerBeat;
+const y=
+i*pixelsPerBeat;
 
-const line=document.createElement("div");
+const line=
+document.createElement("div");
 
 line.className="beatLine";
-line.style.top=y+"px";
+
+line.style.top=
+y+"px";
 
 grid.appendChild(line);
 
 if(i%4===0){
 
-line.classList.add("sectionLine");
+line.classList.add(
+"sectionLine"
+);
 
 }
 
@@ -2240,36 +594,57 @@ line.classList.add("sectionLine");
 
 function timeToY(time){
 
-const bpm=Number(bpmInput.value)||120;
+const bpm=
+Number(bpmInput.value)||120;
 
-const beatTime=60000/bpm;
+const beatTime=
+60000/bpm;
 
-return time/beatTime*pixelsPerBeat;
+return time/
+beatTime*
+pixelsPerBeat;
 
 }
 
 function yToTime(y){
 
-const bpm=Number(bpmInput.value)||120;
+const bpm=
+Number(bpmInput.value)||120;
 
-const beatTime=60000/bpm;
+const beatTime=
+60000/bpm;
 
-return y/pixelsPerBeat*beatTime;
+return y/
+pixelsPerBeat*
+beatTime;
 
 }
 
-function drawAtlasFrame(frameName,visualSize=70,tint=null){
+function drawAtlasFrame(
+frameName,
+visualSize=70,
+tint=null
+){
 
-if(!atlasReady||!atlasFrames[frameName]){
+if(
+!atlasReady||
+!atlasFrames[frameName]
+){
 
-const canvas=document.createElement("canvas");
+const canvas=
+document.createElement("canvas");
 
-canvas.width=visualSize;
-canvas.height=visualSize;
+canvas.width=
+visualSize;
 
-const ctx=canvas.getContext("2d");
+canvas.height=
+visualSize;
 
-ctx.fillStyle=tint||"#fff";
+const ctx=
+canvas.getContext("2d");
+
+ctx.fillStyle=
+tint||"#fff";
 
 ctx.beginPath();
 
@@ -2287,19 +662,32 @@ return canvas;
 
 }
 
-const frame=atlasFrames[frameName];
+const frame=
+atlasFrames[frameName];
 
-const fw=frame.frameWidth||frame.width;
-const fh=frame.frameHeight||frame.height;
+const fw=
+frame.frameWidth||
+frame.width;
 
-const scale=visualSize/Math.max(fw,fh);
+const fh=
+frame.frameHeight||
+frame.height;
 
-const canvas=document.createElement("canvas");
+const scale=
+visualSize/
+Math.max(fw,fh);
 
-canvas.width=Math.ceil(fw*scale);
-canvas.height=Math.ceil(fh*scale);
+const canvas=
+document.createElement("canvas");
 
-const ctx=canvas.getContext("2d");
+canvas.width=
+Math.ceil(fw*scale);
+
+canvas.height=
+Math.ceil(fh*scale);
+
+const ctx=
+canvas.getContext("2d");
 
 ctx.imageSmoothingEnabled=true;
 
@@ -2319,8 +707,11 @@ if(tint){
 
 ctx.save();
 
-ctx.globalCompositeOperation="source-atop";
+ctx.globalCompositeOperation=
+"source-atop";
+
 ctx.globalAlpha=.65;
+
 ctx.fillStyle=tint;
 
 ctx.fillRect(
@@ -2339,14 +730,18 @@ return canvas;
 
 function createNoteElement(note,index){
 
-const color=getDirectionColor(note.lane);
+const color=
+getDirectionColor(note.lane);
 
-const wrapper=document.createElement("div");
+const wrapper=
+document.createElement("div");
 
 wrapper.className="note";
+
 wrapper.dataset.index=index;
 
-const canvas=drawAtlasFrame(
+const canvas=
+drawAtlasFrame(
 "idle0000",
 70,
 color
@@ -2374,8 +769,11 @@ break;
 
 }
 
-wrapper.style.width=canvas.width+"px";
-wrapper.style.height=canvas.height+"px";
+wrapper.style.width=
+canvas.width+"px";
+
+wrapper.style.height=
+canvas.height+"px";
 
 wrapper.style.left=
 (
@@ -2391,18 +789,29 @@ canvas.height/2
 )+"px";
 
 wrapper.style.transform=
-"rotate("+rotation+"deg)";
+"rotate("+
+rotation+
+"deg)";
 
-canvas.style.width=canvas.width+"px";
-canvas.style.height=canvas.height+"px";
+canvas.style.width=
+canvas.width+"px";
+
+canvas.style.height=
+canvas.height+"px";
 
 wrapper.appendChild(canvas);
 
 if(selectedNote===note){
-wrapper.classList.add("selected");
+
+wrapper.classList.add(
+"selected"
+);
+
 }
 
-wrapper.addEventListener("click",e=>{
+wrapper.addEventListener(
+"click",
+e=>{
 
 e.stopPropagation();
 
@@ -2412,14 +821,19 @@ renderNotes();
 
 editor.focus();
 
-});
+}
+);
 
-wrapper.addEventListener("contextmenu",e=>{
+wrapper.addEventListener(
+"contextmenu",
+e=>{
 
 e.preventDefault();
+
 e.stopPropagation();
 
-const idx=notes.indexOf(note);
+const idx=
+notes.indexOf(note);
 
 if(idx!==-1){
 
@@ -2434,30 +848,42 @@ editor.focus();
 
 }
 
-});
+}
+);
 
 return wrapper;
 }
 
-function createSustainElement(note,index){
+function createSustainElement(
+note,
+index
+){
 
-if(!note.sustain||note.sustain<=0)
+if(
+!note.sustain||
+note.sustain<=0
+)
 return null;
 
-const color=getDirectionColor(note.lane);
+const color=
+getDirectionColor(note.lane);
 
-const top=timeToY(note.time);
+const top=
+timeToY(note.time);
 
-const bottom=timeToY(
+const bottom=
+timeToY(
 note.time+note.sustain
 );
 
-const height=Math.max(
+const height=
+Math.max(
 10,
 bottom-top
 );
 
-const sustain=document.createElement("div");
+const sustain=
+document.createElement("div");
 
 sustain.className="sustain";
 
@@ -2468,35 +894,45 @@ laneWidth/2-
 28
 )+"px";
 
-sustain.style.top=top+"px";
+sustain.style.top=
+top+"px";
 
 sustain.style.width="56px";
-sustain.style.height=height+"px";
 
-const body=drawAtlasFrame(
+sustain.style.height=
+height+"px";
+
+const body=
+drawAtlasFrame(
 "sustain0000",
 56,
 color
 );
 
-const end=drawAtlasFrame(
+const end=
+drawAtlasFrame(
 "sustainEnd0000",
 56,
 color
 );
 
-body.style.position="absolute";
+body.style.position=
+"absolute";
+
 body.style.left="0";
 body.style.top="0";
 
 body.style.width="56px";
+
 body.style.height=
 Math.max(
 0,
 height-end.height
 )+"px";
 
-end.style.position="absolute";
+end.style.position=
+"absolute";
+
 end.style.left="0";
 end.style.bottom="0";
 
@@ -2508,13 +944,20 @@ return sustain;
 
 function renderNotes(){
 
-grid.querySelectorAll(".note,.sustain").forEach(e=>e.remove());
+grid.querySelectorAll(
+".note,.sustain"
+).forEach(e=>e.remove());
 
-for(let i=0;i<notes.length;i++){
+for(
+let i=0;
+i<notes.length;
+i++
+){
 
 const note=notes[i];
 
-const sustain=createSustainElement(
+const sustain=
+createSustainElement(
 note,
 i
 );
@@ -2523,7 +966,10 @@ if(sustain)
 grid.appendChild(sustain);
 
 grid.appendChild(
-createNoteElement(note,i)
+createNoteElement(
+note,
+i
+)
 );
 
 }
@@ -2545,7 +991,8 @@ renderNotes();
 
 function getLaneFromX(x){
 
-const firstGroupWidth=laneWidth*4;
+const firstGroupWidth=
+laneWidth*4;
 
 if(
 x>=firstGroupWidth &&
@@ -2558,15 +1005,22 @@ return -1;
 
 if(x<firstGroupWidth){
 
-return Math.floor(x/laneWidth);
+return Math.floor(
+x/laneWidth
+);
 
 }
 
 const secondX=
-x-firstGroupWidth-groupGap;
+x-
+firstGroupWidth-
+groupGap;
 
 const lane=
-4+Math.floor(secondX/laneWidth);
+4+
+Math.floor(
+secondX/laneWidth
+);
 
 if(lane<4||lane>7)
 return -1;
@@ -2574,31 +1028,24 @@ return -1;
 return lane;
 }
 
-grid.addEventListener("mousedown",e=>{
+function addNoteAtLane(
+lane,
+y,
+sustain=false
+){
 
-if(e.button!==0)
+if(lane<0||lane>7)
 return;
 
-const rect=grid.getBoundingClientRect();
+const time=
+snapTime(
+yToTime(y)
+);
 
-const x=e.clientX-rect.left;
-const y=e.clientY-rect.top;
-
-const lane=getLaneFromX(x);
-
-if(lane<0)
-return;
-
-const time=yToTime(y);
-
-if(time<0)
-return;
-
-let snappedTime=snapTime(time);
-
-const existing=notes.find(n=>
+const existing=
+notes.find(n=>
 n.lane===lane &&
-Math.abs(n.time-snappedTime)<2
+Math.abs(n.time-time)<2
 );
 
 if(existing){
@@ -2607,28 +1054,23 @@ selectedNote=existing;
 
 renderNotes();
 
-editor.focus();
-
 return;
-
 }
 
-let sustain=0;
+let sustainLength=0;
 
-if(e.shiftKey){
+if(sustain){
 
-sustain=
-Math.max(
-0,
-60000/(Number(bpmInput.value)||120)
-);
+sustainLength=
+60000/
+(Number(bpmInput.value)||120);
 
 }
 
 const note={
-time:snappedTime,
+time:time,
 lane:lane,
-sustain:sustain,
+sustain:sustainLength,
 type:0
 };
 
@@ -2642,20 +1084,67 @@ grid.style.height=
 calculateChartHeight()+"px";
 
 renderBeatLines();
+
 renderNotes();
+
+setStatus(
+"Nota "+
+(lane+1)+
+" añadida"
+);
+
+}
+
+grid.addEventListener(
+"mousedown",
+e=>{
+
+if(e.button!==0)
+return;
+
+const rect=
+grid.getBoundingClientRect();
+
+const x=
+e.clientX-
+rect.left;
+
+const y=
+e.clientY-
+rect.top;
+
+const lane=
+getLaneFromX(x);
+
+if(lane<0)
+return;
+
+if(y<0)
+return;
+
+addNoteAtLane(
+lane,
+y,
+e.shiftKey
+);
 
 editor.focus();
 
-});
+}
+);
 
 function snapTime(time){
 
 const beatTime=
-60000/(Number(bpmInput.value)||120);
+60000/
+(Number(bpmInput.value)||120);
 
-const snap=beatTime/4;
+const snap=
+beatTime/4;
 
-return Math.round(time/snap)*snap;
+return Math.round(
+time/snap
+)*snap;
 
 }
 
@@ -2664,7 +1153,8 @@ function deleteSelected(){
 if(!selectedNote)
 return;
 
-const i=notes.indexOf(selectedNote);
+const i=
+notes.indexOf(selectedNote);
 
 if(i!==-1){
 
@@ -2674,7 +1164,9 @@ selectedNote=null;
 
 renderNotes();
 
-setStatus("Nota eliminada");
+setStatus(
+"Nota eliminada"
+);
 
 }
 
@@ -2685,16 +1177,23 @@ function clearSectionBF(){
 if(!selectedNote)
 return;
 
-const bpm=Number(bpmInput.value)||120;
+const bpm=
+Number(bpmInput.value)||120;
 
-const beatTime=60000/bpm;
+const beatTime=
+60000/bpm;
 
-const section=Math.floor(
-selectedNote.time/(beatTime*4)
+const section=
+Math.floor(
+selectedNote.time/
+(beatTime*4)
 );
 
-const start=section*beatTime*4;
-const end=start+beatTime*4;
+const start=
+section*beatTime*4;
+
+const end=
+start+beatTime*4;
 
 notes=notes.filter(n=>
 !(
@@ -2715,16 +1214,23 @@ function clearSectionDad(){
 if(!selectedNote)
 return;
 
-const bpm=Number(bpmInput.value)||120;
+const bpm=
+Number(bpmInput.value)||120;
 
-const beatTime=60000/bpm;
+const beatTime=
+60000/bpm;
 
-const section=Math.floor(
-selectedNote.time/(beatTime*4)
+const section=
+Math.floor(
+selectedNote.time/
+(beatTime*4)
 );
 
-const start=section*beatTime*4;
-const end=start+beatTime*4;
+const start=
+section*beatTime*4;
+
+const end=
+start+beatTime*4;
 
 notes=notes.filter(n=>
 !(
@@ -2742,9 +1248,11 @@ renderNotes();
 
 function updateChartFromNotes(){
 
-const song=getSong();
+const song=
+getSong();
 
-const bpm=Number(bpmInput.value)||120;
+const bpm=
+Number(bpmInput.value)||120;
 
 song.bpm=bpm;
 
@@ -2752,10 +1260,13 @@ const sections={};
 
 for(const note of notes){
 
-const beatTime=60000/bpm;
+const beatTime=
+60000/bpm;
 
-const sectionIndex=Math.floor(
-note.time/(beatTime*4)
+const sectionIndex=
+Math.floor(
+note.time/
+(beatTime*4)
 );
 
 if(!sections[sectionIndex])
@@ -2773,25 +1284,37 @@ note.type??0
 const maxSection=
 Object.keys(sections).length?
 Math.max(
-...Object.keys(sections).map(Number)
+...Object.keys(
+sections
+).map(Number)
 ):
 0;
 
 song.notes=[];
 
-for(let i=0;i<=maxSection;i++){
+for(
+let i=0;
+i<=maxSection;
+i++
+){
 
-const beatTime=60000/bpm;
-
-const mustHit=i%2===1;
+const mustHit=
+i%2===1;
 
 song.notes.push({
 
-sectionNotes:sections[i]||[],
+sectionNotes:
+sections[i]||[],
+
 lengthInSteps:16,
-mustHitSection:mustHit,
+
+mustHitSection:
+mustHit,
+
 bpm:bpm,
+
 changeBPM:false,
+
 altAnim:false
 
 });
@@ -2806,20 +1329,27 @@ function exportChart(){
 
 updateChartFromNotes();
 
-const json=JSON.stringify(
+const json=
+JSON.stringify(
 chartData,
 null,
 2
 );
 
-const blob=new Blob(
+const blob=
+new Blob(
 [json],
-{type:"application/json"}
+{
+type:
+"application/json"
+}
 );
 
-const url=URL.createObjectURL(blob);
+const url=
+URL.createObjectURL(blob);
 
-const a=document.createElement("a");
+const a=
+document.createElement("a");
 
 a.href=url;
 
@@ -2831,26 +1361,33 @@ a.click();
 
 URL.revokeObjectURL(url);
 
-setStatus("Chart exportado");
+setStatus(
+"Chart exportado"
+);
 
 }
 
-document.getElementById("fileJson").addEventListener(
+document
+.getElementById("fileJson")
+.addEventListener(
 "change",
 e=>{
 
-const file=e.target.files[0];
+const file=
+e.target.files[0];
 
 if(!file)
 return;
 
-const reader=new FileReader();
+const reader=
+new FileReader();
 
 reader.onload=()=>{
 
 try{
 
-const data=JSON.parse(
+const data=
+JSON.parse(
 reader.result
 );
 
@@ -2862,7 +1399,9 @@ editor.focus();
 
 console.error(err);
 
-alert("JSON inválido");
+alert(
+"JSON inválido"
+);
 
 }
 
@@ -2870,27 +1409,36 @@ alert("JSON inválido");
 
 reader.readAsText(file);
 
-});
+}
+);
 
-document.getElementById("fileAudio").addEventListener(
+document
+.getElementById("fileAudio")
+.addEventListener(
 "change",
 e=>{
 
-const file=e.target.files[0];
+const file=
+e.target.files[0];
 
 if(!file)
 return;
 
 if(audioURL)
-URL.revokeObjectURL(audioURL);
+URL.revokeObjectURL(
+audioURL
+);
 
 audioURL=
-URL.createObjectURL(file);
+URL.createObjectURL(
+file
+);
 
 if(audio)
 audio.pause();
 
-audio=new Audio(audioURL);
+audio=
+new Audio(audioURL);
 
 audio.preload="auto";
 
@@ -2898,7 +1446,8 @@ audio.addEventListener(
 "loadedmetadata",
 ()=>{
 
-audioDuration=audio.duration;
+audioDuration=
+audio.duration;
 
 setStatus(
 "Audio: "+
@@ -2918,17 +1467,23 @@ audio.addEventListener(
 playing=false;
 
 if(animationFrame)
-cancelAnimationFrame(animationFrame);
+cancelAnimationFrame(
+animationFrame
+);
 
-});
+}
+);
 
-});
+}
+);
 
 function playPause(){
 
 if(!audio){
 
-setStatus("Carga un audio primero");
+setStatus(
+"Carga un audio primero"
+);
 
 return;
 
@@ -2941,7 +1496,9 @@ audio.pause();
 playing=false;
 
 if(animationFrame)
-cancelAnimationFrame(animationFrame);
+cancelAnimationFrame(
+animationFrame
+);
 
 return;
 
@@ -2988,9 +1545,11 @@ updatePlayback
 
 function updatePlayPosition(time){
 
-const y=timeToY(time);
+const y=
+timeToY(time);
 
-playLine.style.top=y+"px";
+playLine.style.top=
+y+"px";
 
 if(playing){
 
@@ -2998,16 +1557,19 @@ const viewportHeight=
 scroll.clientHeight;
 
 const target=
-y-viewportHeight*.35;
+y-
+viewportHeight*.35;
 
 if(
-target>0 &&
+target>0&&
 Math.abs(
-scroll.scrollTop-target
+scroll.scrollTop-
+target
 )>100
 ){
 
-scroll.scrollTop=target;
+scroll.scrollTop=
+target;
 
 }
 
@@ -3026,7 +1588,8 @@ renderGrid();
 
 editor.focus();
 
-});
+}
+);
 
 zoomInput.addEventListener(
 "change",
@@ -3042,25 +1605,31 @@ renderGrid();
 
 editor.focus();
 
-});
+}
+);
 
 window.addEventListener(
 "resize",
 ()=>{
 renderGrid();
-});
+}
+);
 
 editor.addEventListener(
 "mousedown",
 ()=>{
 editor.focus();
-});
+}
+);
 
 document.addEventListener(
 "keydown",
 e=>{
 
-if(e.target===bpmInput||e.target===zoomInput)
+if(
+e.target===bpmInput||
+e.target===zoomInput
+)
 return;
 
 if(e.code==="Space"){
@@ -3083,7 +1652,54 @@ return;
 
 }
 
-});
+const keyToLane={
+
+Digit1:0,
+Digit2:1,
+Digit3:2,
+Digit4:3,
+Digit5:4,
+Digit6:5,
+Digit7:6,
+Digit8:7
+
+};
+
+if(!(e.code in keyToLane))
+return;
+
+e.preventDefault();
+
+const lane=
+keyToLane[e.code];
+
+const editorRect=
+scroll.getBoundingClientRect();
+
+const gridRect=
+grid.getBoundingClientRect();
+
+let y=
+scroll.scrollTop+
+(
+editorRect.top-
+gridRect.top
+)+
+scroll.clientHeight/2;
+
+y=Math.max(
+0,
+y
+);
+
+addNoteAtLane(
+lane,
+y,
+e.shiftKey
+);
+
+}
+);
 
 grid.addEventListener(
 "dragover",
@@ -3093,9 +1709,11 @@ e.preventDefault();
 
 document.getElementById(
 "dropOverlay"
-).style.display="flex";
+).style.display=
+"flex";
 
-});
+}
+);
 
 grid.addEventListener(
 "dragleave",
@@ -3103,9 +1721,11 @@ e=>{
 
 document.getElementById(
 "dropOverlay"
-).style.display="none";
+).style.display=
+"none";
 
-});
+}
+);
 
 grid.addEventListener(
 "drop",
@@ -3115,7 +1735,8 @@ e.preventDefault();
 
 document.getElementById(
 "dropOverlay"
-).style.display="none";
+).style.display=
+"none";
 
 const files=
 [...e.dataTransfer.files];
@@ -3123,22 +1744,29 @@ const files=
 for(const file of files){
 
 if(
-file.name.toLowerCase().endsWith(".json")
+file.name
+.toLowerCase()
+.endsWith(".json")
 ){
 
-const reader=new FileReader();
+const reader=
+new FileReader();
 
 reader.onload=()=>{
 
 try{
 
 normalizeChart(
-JSON.parse(reader.result)
+JSON.parse(
+reader.result
+)
 );
 
 }catch(err){
 
-alert("JSON inválido");
+alert(
+"JSON inválido"
+);
 
 }
 
@@ -3153,18 +1781,26 @@ file.type.startsWith("audio/")
 ){
 
 if(audioURL)
-URL.revokeObjectURL(audioURL);
+URL.revokeObjectURL(
+audioURL
+);
 
 audioURL=
-URL.createObjectURL(file);
+URL.createObjectURL(
+file
+);
 
-audio=new Audio(audioURL);
+audio=
+new Audio(
+audioURL
+);
 
 audio.addEventListener(
 "loadedmetadata",
 ()=>{
 
-audioDuration=audio.duration;
+audioDuration=
+audio.duration;
 
 setStatus(
 "Audio: "+
@@ -3181,16 +1817,21 @@ audio.duration.toFixed(2)+
 
 editor.focus();
 
-});
+}
+);
 
 async function cargarAtlasAutomaticamente(){
 
 try{
 
-setStatus("Cargando nota.xml...");
+setStatus(
+"Cargando nota.xml..."
+);
 
 const response=
-await fetch("nota.xml");
+await fetch(
+"nota.xml"
+);
 
 if(!response.ok){
 
@@ -3213,21 +1854,29 @@ xmlText,
 );
 
 const parserError=
-xml.querySelector("parsererror");
+xml.querySelector(
+"parsererror"
+);
 
-if(parserError)
+if(parserError){
+
 throw new Error(
 "XML inválido"
 );
+
+}
 
 atlasFrames={};
 
 xml.querySelectorAll(
 "SubTexture"
-).forEach(frame=>{
+).forEach(
+frame=>{
 
 const name=
-frame.getAttribute("name");
+frame.getAttribute(
+"name"
+);
 
 atlasFrames[name]={
 
@@ -3255,25 +1904,36 @@ frameY:Number(
 frame.getAttribute("frameY")
 )||0,
 
-frameWidth:Number(
-frame.getAttribute("frameWidth")
+frameWidth:
+Number(
+frame.getAttribute(
+"frameWidth"
+)
 )||
 Number(
-frame.getAttribute("width")
+frame.getAttribute(
+"width"
+)
 )||
 0,
 
-frameHeight:Number(
-frame.getAttribute("frameHeight")
+frameHeight:
+Number(
+frame.getAttribute(
+"frameHeight"
+)
 )||
 Number(
-frame.getAttribute("height")
+frame.getAttribute(
+"height"
+)
 )||
 0
 
 };
 
-});
+}
+);
 
 atlasImage.onload=()=>{
 
@@ -3297,7 +1957,8 @@ setStatus(
 
 };
 
-atlasImage.src="nota.png";
+atlasImage.src=
+"nota.png";
 
 }catch(error){
 
@@ -3327,7 +1988,8 @@ cargarAtlasAutomaticamente();
 
 editor.focus();
 
-});
+}
+);
 
 </script>
 
