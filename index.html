@@ -93,6 +93,7 @@ right:0;
 top:0;
 bottom:0;
 overflow:auto;
+scroll-behavior:auto;
 }
 
 #grid{
@@ -100,7 +101,8 @@ position:relative;
 width:min(900px,100%);
 margin:48px auto 500px auto;
 min-height:1000px;
-background:#151515;
+background-color:#151515;
+background-repeat:repeat-y;
 border-left:1px solid #333;
 border-right:1px solid #333;
 }
@@ -129,24 +131,6 @@ font-size:11px;
 color:#888;
 pointer-events:none;
 z-index:3;
-}
-
-.beatLine{
-position:absolute;
-left:0;
-width:100%;
-height:1px;
-background:rgba(255,255,255,.10);
-pointer-events:none;
-}
-
-.sectionLine{
-position:absolute;
-left:0;
-width:100%;
-height:2px;
-background:rgba(255,255,255,.25);
-pointer-events:none;
 }
 
 #gridHeader{
@@ -320,12 +304,16 @@ background:#444;
 <div id="gridGroupDivider"></div>
 
 <div id="scroll">
+
 <div id="grid">
 <div id="playLine"></div>
 </div>
+
 </div>
 
-<div id="dropOverlay">SUELTA EL JSON O AUDIO AQUÍ</div>
+<div id="dropOverlay">
+SUELTA EL JSON O AUDIO AQUÍ
+</div>
 
 <div id="help">
 1-4 = BF · 5-8 = DAD · Shift + tecla = sustain · Click = nota · Click derecho = eliminar · Espacio = play/pausa · Delete = eliminar
@@ -352,6 +340,8 @@ let laneWidth=100;
 let atlasImage=new Image();
 let atlasFrames={};
 let atlasReady=false;
+
+const spriteCache=new Map();
 
 let chartData={
 song:{
@@ -402,18 +392,24 @@ laneWidth=(getGridWidth()-groupGap)/8;
 }
 
 function getSong(){
-if(chartData.song)return chartData.song;
+if(chartData.song)
+return chartData.song;
+
 return chartData;
 }
 
 function normalizeChart(data){
 
 if(data.song){
+
 chartData=data;
+
 }else{
+
 chartData={
 song:data
 };
+
 }
 
 const song=getSong();
@@ -430,7 +426,8 @@ notes=[];
 
 for(const section of song.notes){
 
-if(section.sectionNotes){
+if(!section.sectionNotes)
+continue;
 
 for(const n of section.sectionNotes){
 
@@ -438,13 +435,16 @@ if(!Array.isArray(n))
 continue;
 
 notes.push({
-time:Number(n[0])||0,
-lane:Number(n[1])||0,
-sustain:Number(n[2])||0,
-type:n[3]??0
-});
 
-}
+time:Number(n[0])||0,
+
+lane:Number(n[1])||0,
+
+sustain:Number(n[2])||0,
+
+type:n[3]??0
+
+});
 
 }
 
@@ -459,17 +459,24 @@ setStatus(
 notes.length+
 " notas"
 );
+
 }
 
 function sortNotes(){
-notes.sort((a,b)=>a.time-b.time);
+
+notes.sort(
+(a,b)=>a.time-b.time
+);
+
 }
 
 function clearGridVisuals(){
 
 grid.querySelectorAll(
-".lane,.laneLabel,.beatLine,.sectionLine,.note,.sustain"
-).forEach(e=>e.remove());
+".lane,.laneLabel,.note,.sustain"
+).forEach(
+e=>e.remove()
+);
 
 }
 
@@ -479,11 +486,13 @@ calculateLaneWidth();
 
 clearGridVisuals();
 
-grid.style.width="min(900px,100%)";
+grid.style.width=
+"min(900px,100%)";
 
 for(let i=0;i<8;i++){
 
-const lane=document.createElement("div");
+const lane=
+document.createElement("div");
 
 lane.className="lane";
 
@@ -495,9 +504,11 @@ laneWidth+"px";
 
 grid.appendChild(lane);
 
-const label=document.createElement("div");
+const label=
+document.createElement("div");
 
-label.className="laneLabel";
+label.className=
+"laneLabel";
 
 label.textContent=
 i%4===0?"←":
@@ -525,11 +536,13 @@ function calculateChartHeight(){
 if(notes.length===0)
 return 5000;
 
-let maxTime=notes[notes.length-1].time;
+let maxTime=
+notes[notes.length-1].time;
 
 for(const n of notes){
 
-maxTime=Math.max(
+maxTime=
+Math.max(
 maxTime,
 n.time+n.sustain
 );
@@ -537,9 +550,11 @@ n.time+n.sustain
 }
 
 const beatTime=
-60000/Number(bpmInput.value||120);
+60000/
+Number(bpmInput.value||120);
 
-const beats=maxTime/beatTime;
+const beats=
+maxTime/beatTime;
 
 return Math.max(
 5000,
@@ -550,45 +565,25 @@ beats*pixelsPerBeat+1000
 
 function renderBeatLines(){
 
-grid.querySelectorAll(
-".beatLine,.sectionLine"
-).forEach(e=>e.remove());
+const beatHeight=
+pixelsPerBeat;
 
-const bpm=
-Number(bpmInput.value)||120;
+const sectionHeight=
+pixelsPerBeat*4;
 
-const height=
-grid.clientHeight;
-
-const maxBeats=
-Math.ceil(
-height/pixelsPerBeat
-);
-
-for(let i=0;i<=maxBeats;i++){
-
-const y=
-i*pixelsPerBeat;
-
-const line=
-document.createElement("div");
-
-line.className="beatLine";
-
-line.style.top=
-y+"px";
-
-grid.appendChild(line);
-
-if(i%4===0){
-
-line.classList.add(
-"sectionLine"
-);
-
-}
-
-}
+grid.style.backgroundImage=
+"repeating-linear-gradient("+
+"to bottom,"+
+"transparent 0px,"+
+"transparent "+(sectionHeight-2)+"px,"+
+"rgba(255,255,255,.25) "+(sectionHeight-2)+"px,"+
+"rgba(255,255,255,.25) "+sectionHeight+"px),"+
+"repeating-linear-gradient("+
+"to bottom,"+
+"rgba(255,255,255,.10) 0px,"+
+"rgba(255,255,255,.10) 1px,"+
+"transparent 1px,"+
+"transparent "+beatHeight+"px)";
 
 }
 
@@ -626,6 +621,19 @@ visualSize=70,
 tint=null
 ){
 
+const cacheKey=
+frameName+
+"_"+visualSize+
+"_"+(tint||"none");
+
+if(spriteCache.has(cacheKey)){
+
+return spriteCache
+.get(cacheKey)
+.cloneNode(true);
+
+}
+
 if(
 !atlasReady||
 !atlasFrames[frameName]
@@ -658,7 +666,12 @@ Math.PI*2
 
 ctx.fill();
 
-return canvas;
+spriteCache.set(
+cacheKey,
+canvas
+);
+
+return canvas.cloneNode(true);
 
 }
 
@@ -689,18 +702,23 @@ Math.ceil(fh*scale);
 const ctx=
 canvas.getContext("2d");
 
-ctx.imageSmoothingEnabled=true;
+ctx.imageSmoothingEnabled=false;
 
 ctx.drawImage(
+
 atlasImage,
+
 frame.x,
 frame.y,
 frame.width,
 frame.height,
+
 frame.frameX*scale,
 frame.frameY*scale,
+
 frame.width*scale,
 frame.height*scale
+
 );
 
 if(tint){
@@ -725,20 +743,32 @@ ctx.restore();
 
 }
 
-return canvas;
+spriteCache.set(
+cacheKey,
+canvas
+);
+
+return canvas.cloneNode(true);
+
 }
 
-function createNoteElement(note,index){
+function createNoteElement(
+note,
+index
+){
 
 const color=
-getDirectionColor(note.lane);
+getDirectionColor(
+note.lane
+);
 
 const wrapper=
 document.createElement("div");
 
 wrapper.className="note";
 
-wrapper.dataset.index=index;
+wrapper.dataset.index=
+index;
 
 const canvas=
 drawAtlasFrame(
@@ -789,15 +819,7 @@ canvas.height/2
 )+"px";
 
 wrapper.style.transform=
-"rotate("+
-rotation+
-"deg)";
-
-canvas.style.width=
-canvas.width+"px";
-
-canvas.style.height=
-canvas.height+"px";
+"rotate("+rotation+"deg)";
 
 wrapper.appendChild(canvas);
 
@@ -832,15 +854,15 @@ e.preventDefault();
 
 e.stopPropagation();
 
-const idx=
+const index=
 notes.indexOf(note);
 
-if(idx!==-1){
+if(index!==-1){
 
 if(selectedNote===note)
 selectedNote=null;
 
-notes.splice(idx,1);
+notes.splice(index,1);
 
 renderNotes();
 
@@ -852,6 +874,7 @@ editor.focus();
 );
 
 return wrapper;
+
 }
 
 function createSustainElement(
@@ -866,14 +889,17 @@ note.sustain<=0
 return null;
 
 const color=
-getDirectionColor(note.lane);
+getDirectionColor(
+note.lane
+);
 
 const top=
 timeToY(note.time);
 
 const bottom=
 timeToY(
-note.time+note.sustain
+note.time+
+note.sustain
 );
 
 const height=
@@ -881,6 +907,8 @@ Math.max(
 10,
 bottom-top
 );
+
+const noteSize=70;
 
 const sustain=
 document.createElement("div");
@@ -891,28 +919,41 @@ sustain.style.left=
 (
 getLaneX(note.lane)+
 laneWidth/2-
-28
+noteSize/2
 )+"px";
 
 sustain.style.top=
 top+"px";
 
-sustain.style.width="56px";
+sustain.style.width=
+noteSize+"px";
 
 sustain.style.height=
 height+"px";
 
+const endSize=
+Math.min(
+noteSize,
+height
+);
+
+const bodyHeight=
+Math.max(
+0,
+height-endSize
+);
+
 const body=
 drawAtlasFrame(
 "sustain0000",
-56,
+noteSize,
 color
 );
 
 const end=
 drawAtlasFrame(
 "sustainEnd0000",
-56,
+noteSize,
 color
 );
 
@@ -920,33 +961,46 @@ body.style.position=
 "absolute";
 
 body.style.left="0";
+
 body.style.top="0";
 
-body.style.width="56px";
+body.style.width=
+noteSize+"px";
 
 body.style.height=
-Math.max(
-0,
-height-end.height
-)+"px";
+bodyHeight+"px";
 
 end.style.position=
 "absolute";
 
 end.style.left="0";
+
 end.style.bottom="0";
 
+end.style.width=
+noteSize+"px";
+
+end.style.height=
+endSize+"px";
+
 sustain.appendChild(body);
+
 sustain.appendChild(end);
 
 return sustain;
+
 }
 
 function renderNotes(){
 
+const old=
 grid.querySelectorAll(
 ".note,.sustain"
-).forEach(e=>e.remove());
+);
+
+old.forEach(
+e=>e.remove()
+);
 
 for(
 let i=0;
@@ -954,7 +1008,8 @@ i<notes.length;
 i++
 ){
 
-const note=notes[i];
+const note=
+notes[i];
 
 const sustain=
 createSustainElement(
@@ -995,7 +1050,7 @@ const firstGroupWidth=
 laneWidth*4;
 
 if(
-x>=firstGroupWidth &&
+x>=firstGroupWidth&&
 x<firstGroupWidth+groupGap
 ){
 
@@ -1022,10 +1077,14 @@ Math.floor(
 secondX/laneWidth
 );
 
-if(lane<4||lane>7)
+if(
+lane<4||
+lane>7
+)
 return -1;
 
 return lane;
+
 }
 
 function addNoteAtLane(
@@ -1034,7 +1093,10 @@ y,
 sustain=false
 ){
 
-if(lane<0||lane>7)
+if(
+lane<0||
+lane>7
+)
 return;
 
 const time=
@@ -1043,18 +1105,21 @@ yToTime(y)
 );
 
 const existing=
-notes.find(n=>
-n.lane===lane &&
+notes.find(
+n=>
+n.lane===lane&&
 Math.abs(n.time-time)<2
 );
 
 if(existing){
 
-selectedNote=existing;
+selectedNote=
+existing;
 
 renderNotes();
 
 return;
+
 }
 
 let sustainLength=0;
@@ -1068,15 +1133,21 @@ sustainLength=
 }
 
 const note={
+
 time:time,
+
 lane:lane,
+
 sustain:sustainLength,
+
 type:0
+
 };
 
 notes.push(note);
 
-selectedNote=note;
+selectedNote=
+note;
 
 sortNotes();
 
@@ -1153,12 +1224,17 @@ function deleteSelected(){
 if(!selectedNote)
 return;
 
-const i=
-notes.indexOf(selectedNote);
+const index=
+notes.indexOf(
+selectedNote
+);
 
-if(i!==-1){
+if(index!==-1){
 
-notes.splice(i,1);
+notes.splice(
+index,
+1
+);
 
 selectedNote=null;
 
@@ -1195,7 +1271,9 @@ section*beatTime*4;
 const end=
 start+beatTime*4;
 
-notes=notes.filter(n=>
+notes=
+notes.filter(
+n=>
 !(
 n.lane<4&&
 n.time>=start&&
@@ -1232,7 +1310,9 @@ section*beatTime*4;
 const end=
 start+beatTime*4;
 
-notes=notes.filter(n=>
+notes=
+notes.filter(
+n=>
 !(
 n.lane>=4&&
 n.time>=start&&
@@ -1258,10 +1338,10 @@ song.bpm=bpm;
 
 const sections={};
 
-for(const note of notes){
-
 const beatTime=
 60000/bpm;
+
+for(const note of notes){
 
 const sectionIndex=
 Math.floor(
@@ -1281,12 +1361,13 @@ note.type??0
 
 }
 
+const keys=
+Object.keys(sections);
+
 const maxSection=
-Object.keys(sections).length?
+keys.length?
 Math.max(
-...Object.keys(
-sections
-).map(Number)
+...keys.map(Number)
 ):
 0;
 
@@ -1298,9 +1379,6 @@ i<=maxSection;
 i++
 ){
 
-const mustHit=
-i%2===1;
-
 song.notes.push({
 
 sectionNotes:
@@ -1309,7 +1387,7 @@ sections[i]||[],
 lengthInSteps:16,
 
 mustHitSection:
-mustHit,
+i%2===1,
 
 bpm:bpm,
 
@@ -1346,7 +1424,9 @@ type:
 );
 
 const url=
-URL.createObjectURL(blob);
+URL.createObjectURL(
+blob
+);
 
 const a=
 document.createElement("a");
@@ -1359,7 +1439,9 @@ a.download=
 
 a.click();
 
-URL.revokeObjectURL(url);
+URL.revokeObjectURL(
+url
+);
 
 setStatus(
 "Chart exportado"
@@ -1424,10 +1506,13 @@ e.target.files[0];
 if(!file)
 return;
 
-if(audioURL)
+if(audioURL){
+
 URL.revokeObjectURL(
 audioURL
 );
+
+}
 
 audioURL=
 URL.createObjectURL(
@@ -1438,7 +1523,9 @@ if(audio)
 audio.pause();
 
 audio=
-new Audio(audioURL);
+new Audio(
+audioURL
+);
 
 audio.preload="auto";
 
@@ -1466,10 +1553,15 @@ audio.addEventListener(
 
 playing=false;
 
-if(animationFrame)
+if(animationFrame){
+
 cancelAnimationFrame(
 animationFrame
 );
+
+animationFrame=null;
+
+}
 
 }
 );
@@ -1495,10 +1587,15 @@ audio.pause();
 
 playing=false;
 
-if(animationFrame)
+if(animationFrame){
+
 cancelAnimationFrame(
 animationFrame
 );
+
+animationFrame=null;
+
+}
 
 return;
 
@@ -1523,7 +1620,20 @@ audio.currentTime=0;
 
 playing=false;
 
-updatePlayPosition(0);
+if(animationFrame){
+
+cancelAnimationFrame(
+animationFrame
+);
+
+animationFrame=null;
+
+}
+
+updatePlayPosition(
+0,
+false
+);
 
 }
 
@@ -1533,7 +1643,8 @@ if(!playing||!audio)
 return;
 
 updatePlayPosition(
-audio.currentTime*1000
+audio.currentTime*1000,
+true
 );
 
 animationFrame=
@@ -1543,7 +1654,10 @@ updatePlayback
 
 }
 
-function updatePlayPosition(time){
+function updatePlayPosition(
+time,
+autoScroll=true
+){
 
 const y=
 timeToY(time);
@@ -1551,21 +1665,25 @@ timeToY(time);
 playLine.style.top=
 y+"px";
 
-if(playing){
+if(
+autoScroll&&
+playing
+){
 
 const viewportHeight=
 scroll.clientHeight;
 
 const target=
+Math.max(
+0,
 y-
-viewportHeight*.35;
+viewportHeight*.35
+);
 
 if(
-target>0&&
 Math.abs(
-scroll.scrollTop-
-target
-)>100
+scroll.scrollTop-target
+)>200
 ){
 
 scroll.scrollTop=
@@ -1611,14 +1729,18 @@ editor.focus();
 window.addEventListener(
 "resize",
 ()=>{
+
 renderGrid();
+
 }
 );
 
 editor.addEventListener(
 "mousedown",
 ()=>{
+
 editor.focus();
+
 }
 );
 
@@ -1717,7 +1839,7 @@ document.getElementById(
 
 grid.addEventListener(
 "dragleave",
-e=>{
+()=>{
 
 document.getElementById(
 "dropOverlay"
@@ -1780,10 +1902,13 @@ else if(
 file.type.startsWith("audio/")
 ){
 
-if(audioURL)
+if(audioURL){
+
 URL.revokeObjectURL(
 audioURL
 );
+
+}
 
 audioURL=
 URL.createObjectURL(
@@ -1794,6 +1919,8 @@ audio=
 new Audio(
 audioURL
 );
+
+audio.preload="auto";
 
 audio.addEventListener(
 "loadedmetadata",
@@ -1938,6 +2065,8 @@ frame.getAttribute(
 atlasImage.onload=()=>{
 
 atlasReady=true;
+
+spriteCache.clear();
 
 setStatus(
 "nota.png + nota.xml cargados"
